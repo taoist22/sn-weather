@@ -62,3 +62,7 @@ Requires Supernote firmware with plugin support. Tested on Supernote Nomad (A6X2
 ## License
 
 MIT
+
+---
+
+<sub><a href="https://www.flaticon.com/free-icons/weather" title="weather icons">Weather icons created by GOWI - Flaticon</a></sub>
