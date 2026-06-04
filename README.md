@@ -1,3 +1,7 @@
+
+
+https://github.com/user-attachments/assets/3443ece5-8067-429f-ac6e-82b32cc0ecdb
+
 # Weather for Supernote
 
 A [Supernote](https://supernote.com) plugin that looks up the current weather for your location and inserts it into your note as an editable text stamp. Powered by the free, keyless [Open-Meteo](https://open-meteo.com) API.
