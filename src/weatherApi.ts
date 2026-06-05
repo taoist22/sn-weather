@@ -99,7 +99,9 @@ export async function fetchCurrentWeather(
     weatherCode: typeof cur.weather_code === 'number' ? cur.weather_code : -1,
     isDay: cur.is_day === 1,
     tempUnitLabel: units.temperature_2m ?? (tempUnit === 'celsius' ? '°C' : '°F'),
-    windUnitLabel: units.wind_speed_10m ?? (windUnit === 'kmh' ? 'km/h' : 'mph'),
+    // Derive the wind label from the requested unit rather than the API's
+    // `current_units`, which returns "mp/h" (with a slash) for imperial.
+    windUnitLabel: windUnit === 'kmh' ? 'km/h' : 'mph',
     time: typeof cur.time === 'string' ? cur.time : '',
   };
 }

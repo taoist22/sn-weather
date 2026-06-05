@@ -24,6 +24,7 @@ import {
 import {fetchCurrentWeather, searchLocations} from './weatherApi';
 import {loadLocation, loadPrefs, saveLocation, savePrefs} from './storage';
 import {buildWeatherLines, insertWeatherStamp} from './insertWeather';
+import {subscribeToButtonEvents} from './pluginRouter';
 
 const DEFAULT_PAGE_WIDTH = 1404;
 const PANEL_WIDTH = 480;
@@ -125,6 +126,7 @@ export default function WeatherPanel() {
   const [error, setError] = useState<string | null>(null);
   const insertingRef = useRef(false);
   const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastRefreshRef = useRef(0);
 
   // ── Fetch weather for a location + prefs ──
   const fetchWeather = useCallback(
@@ -167,6 +169,20 @@ export default function WeatherPanel() {
     }
   }, [fetchWeather]);
 
+  // ── Refresh on (re)open ──
+  // The component never unmounts — closing the panel only hides the native
+  // view, so weather state would otherwise persist and a stale reading could be
+  // inserted on the next open. A reopen fires both `onStart` and a toolbar
+  // button press; the timestamp guard coalesces them into a single refetch.
+  const refresh = useCallback(() => {
+    const now = Date.now();
+    if (now - lastRefreshRef.current < 1500) {
+      return;
+    }
+    lastRefreshRef.current = now;
+    bootstrap();
+  }, [bootstrap]);
+
   useEffect(() => {
     // Resolve the note page size and device type — both feed the placement
     // width cap in handleInsert (a Manta-sized note opened on a Nomad must be
@@ -185,13 +201,17 @@ export default function WeatherPanel() {
         // leave deviceType null — placementWidthFor falls back to page width
       }
     })();
-    bootstrap();
+    refresh();
     const lifeSub = PluginManager.addPluginLifeListener({
       onStart() {
         // Re-open may not remount the component — refresh persisted data.
-        bootstrap();
+        refresh();
       },
       onStop() {
+        // Drop the last reading so a stale value can never be inserted on the
+        // next open; reopening refetches fresh conditions.
+        setWeather(null);
+        setWeatherError(null);
         // Clear transient search/error state when the panel closes.
         setQuery('');
         setResults([]);
@@ -200,13 +220,17 @@ export default function WeatherPanel() {
         setError(null);
       },
     });
+    // A toolbar button press is the most reliable "reopened" signal — fires on
+    // every open even when onStart does not.
+    const btnSub = subscribeToButtonEvents(() => refresh());
     return () => {
       lifeSub.remove();
+      btnSub();
       if (errorTimerRef.current) {
         clearTimeout(errorTimerRef.current);
       }
     };
-  }, [bootstrap]);
+  }, [bootstrap, refresh]);
 
   // ── Preview lines ──
   const previewLines = useMemo(() => {
