@@ -18,7 +18,7 @@ A [Supernote](https://supernote.com) plugin that looks up the current weather fo
     Wind 14 km/h NE · Humidity 78%
     ```
   - *One-line*: `Toronto · 12°C, Slight rain · Wind 14 km/h NE`
-- **Optional timestamp:** toggle a date + local-time stamp on or off, in 24-hour or 12-hour format. The time is the reading's time in the location's own timezone.
+- **Optional timestamp:** toggle a date + local-time stamp on or off, with ISO, EU, or US date format and 24-hour or 12-hour time. The time is the reading's time in the location's own timezone.
 - **Units:** °C / °F and km/h / mph, selectable and remembered.
 - **Position:** Top Left or Top Right of the page.
 - Inserted as an editable text element — lasso and move it like any text box.
@@ -35,7 +35,7 @@ A [Supernote](https://supernote.com) plugin that looks up the current weather fo
 1. Open a note and tap the **weather icon** in the toolbar.
 2. **First run:** search for your city and tap the correct match (e.g. "Springfield, Illinois, United States"). The location is saved.
 3. The panel fetches the current weather and shows a live preview.
-4. Adjust **temperature** (°C/°F), **wind** (km/h / mph), **format**, and **position** as desired. Changing units re-fetches; your settings persist.
+4. Adjust **temperature** (°C/°F), **wind** (km/h / mph), **format**, **timestamp**, and **position** as desired. Changing units re-fetches; your settings persist.
 5. Tap **Insert** to place the stamp and close the panel.
 6. To switch cities later, tap **Change** on the weather screen.
 

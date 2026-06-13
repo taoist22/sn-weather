@@ -2,8 +2,8 @@
   "name": "Weather",
   "desc": "Look up the current weather for your location and insert it into your note.",
   "iconPath": "assets/weather.png",
-  "versionName": "0.1.1-beta",
-  "versionCode": "2",
+  "versionName": "0.1.2-beta",
+  "versionCode": "3",
   "pluginID": "4euo2i7sadogfv8n",
   "pluginKey": "Weather",
   "jsMainPath": "index"

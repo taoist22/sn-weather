@@ -1,7 +1,14 @@
 // ─── Build + insert the weather stamp ─────────────────────────────────────────
 
 import {PluginNoteAPI} from 'sn-plugin-lib';
-import {CurrentWeather, Position, Prefs, SavedLocation, TimeFormat} from './types';
+import {
+  CurrentWeather,
+  DateFormat,
+  Position,
+  Prefs,
+  SavedLocation,
+  TimeFormat,
+} from './types';
 import {wmoDescription} from './wmo';
 
 const FONT_SIZE = 30;
@@ -39,10 +46,21 @@ function locationLabel(loc: SavedLocation): string {
   return region ? `${loc.name}, ${region}` : loc.name;
 }
 
-/** ISO date (YYYY-MM-DD) of the reading, in the location's local time. */
-function readingDate(weather: CurrentWeather): string {
+/** Date of the reading, in the location's local time. */
+function readingDate(weather: CurrentWeather, fmt: DateFormat): string {
   if (weather.time && weather.time.length >= 10) {
-    return weather.time.slice(0, 10);
+    const isoDate = weather.time.slice(0, 10);
+    if (fmt === 'iso') {
+      return isoDate;
+    }
+    const [year, month, day] = isoDate.split('-');
+    if (!year || !month || !day) {
+      return isoDate;
+    }
+    if (fmt === 'eu') {
+      return `${day}/${month}/${year}`;
+    }
+    return `${Number(month)}/${Number(day)}/${year}`;
   }
   return new Date().toISOString().slice(0, 10);
 }
@@ -71,9 +89,14 @@ function readingTime(weather: CurrentWeather, fmt: TimeFormat): string {
 }
 
 /** "2026-06-04 14:30" — date plus local time, when the stamp is enabled. */
-function dateTimeStamp(weather: CurrentWeather, fmt: TimeFormat): string {
-  const time = readingTime(weather, fmt);
-  return time ? `${readingDate(weather)} ${time}` : readingDate(weather);
+function dateTimeStamp(
+  weather: CurrentWeather,
+  dateFmt: DateFormat,
+  timeFmt: TimeFormat,
+): string {
+  const date = readingDate(weather, dateFmt);
+  const time = readingTime(weather, timeFmt);
+  return time ? `${date} ${time}` : date;
 }
 
 /**
@@ -84,14 +107,14 @@ function dateTimeStamp(weather: CurrentWeather, fmt: TimeFormat): string {
 export function buildWeatherLines(
   weather: CurrentWeather,
   location: SavedLocation,
-  prefs: Pick<Prefs, 'format' | 'showDateTime' | 'timeFormat'>,
+  prefs: Pick<Prefs, 'format' | 'showDateTime' | 'dateFormat' | 'timeFormat'>,
 ): string[] {
   const t = `${weather.temperature}${weather.tempUnitLabel}`;
   const feels = `${weather.apparentTemperature}${weather.tempUnitLabel}`;
   const wind = windText(weather);
   const desc = wmoDescription(weather.weatherCode);
   const stamp = prefs.showDateTime
-    ? dateTimeStamp(weather, prefs.timeFormat)
+    ? dateTimeStamp(weather, prefs.dateFormat, prefs.timeFormat)
     : '';
 
   if (prefs.format === 'oneline') {

@@ -1,6 +1,6 @@
 {
   "name": "Weather",
-  "version": "0.1.1-beta",
+  "version": "0.1.2-beta",
   "description": "Look up the current weather for your location and insert it into your note.",
   "private": true,
   "scripts": {

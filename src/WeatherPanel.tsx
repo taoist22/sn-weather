@@ -11,6 +11,7 @@ import {
 import {PluginCommAPI, PluginFileAPI, PluginManager} from 'sn-plugin-lib';
 import {
   CurrentWeather,
+  DateFormat,
   DEFAULT_PREFS,
   GeocodeResult,
   Position,
@@ -30,6 +31,12 @@ const DEFAULT_PAGE_WIDTH = 1404;
 const PANEL_WIDTH = 480;
 const PANEL_PADDING = 20;
 const ERROR_DISPLAY_MS = 2500;
+
+const DATE_FORMATS: Array<{label: string; value: DateFormat}> = [
+  {label: 'ISO', value: 'iso'},
+  {label: 'EU', value: 'eu'},
+  {label: 'US', value: 'us'},
+];
 
 // Native screen pixel dimensions [portraitWidth, portraitHeight] by device type.
 // `insertText` places content in the device's native pixel space, so when a
@@ -538,6 +545,15 @@ export default function WeatherPanel() {
 
         {prefs.showDateTime && (
           <>
+            <Text style={styles.fieldLabel}>{'Date format'}</Text>
+            <View style={styles.chipRow}>
+              {DATE_FORMATS.map(f =>
+                renderToggle(f.label, prefs.dateFormat === f.value, () =>
+                  updatePrefs({dateFormat: f.value}, false),
+                ),
+              )}
+            </View>
+
             <Text style={styles.fieldLabel}>{'Time format'}</Text>
             <View style={styles.chipRow}>
               {renderToggle('24h', prefs.timeFormat === '24h', () =>

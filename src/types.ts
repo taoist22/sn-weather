@@ -21,6 +21,7 @@ export type WindUnit = 'kmh' | 'mph';
 export type WeatherFormat = 'multiline' | 'oneline';
 export type Position = 'top-left' | 'top-right';
 export type TimeFormat = '24h' | '12h';
+export type DateFormat = 'iso' | 'eu' | 'us';
 
 /** User preferences persisted across sessions. */
 export type Prefs = {
@@ -29,6 +30,7 @@ export type Prefs = {
   format: WeatherFormat;
   position: Position;
   showDateTime: boolean; // include a date+time stamp, or omit it entirely
+  dateFormat: DateFormat;
   timeFormat: TimeFormat;
 };
 
@@ -38,6 +40,7 @@ export const DEFAULT_PREFS: Prefs = {
   format: 'multiline',
   position: 'top-left',
   showDateTime: true,
+  dateFormat: 'iso',
   timeFormat: '24h',
 };
 
