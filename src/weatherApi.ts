@@ -17,6 +17,7 @@ const CURRENT_VARS = [
   'relative_humidity_2m',
   'weather_code',
   'wind_speed_10m',
+  'wind_gusts_10m',
   'wind_direction_10m',
   'is_day',
 ].join(',');
@@ -90,11 +91,17 @@ export async function fetchCurrentWeather(
     throw new Error('No current weather in response');
   }
 
+  const windGusts =
+    typeof cur.wind_gusts_10m === 'number' && isFinite(cur.wind_gusts_10m)
+      ? Math.round(cur.wind_gusts_10m)
+      : undefined;
+
   return {
     temperature: round(cur.temperature_2m),
     apparentTemperature: round(cur.apparent_temperature),
     humidity: round(cur.relative_humidity_2m),
     windSpeed: round(cur.wind_speed_10m),
+    windGusts,
     windDirection: round(cur.wind_direction_10m),
     weatherCode: typeof cur.weather_code === 'number' ? cur.weather_code : -1,
     isDay: cur.is_day === 1,

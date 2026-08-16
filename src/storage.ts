@@ -46,8 +46,11 @@ export async function loadPrefs(): Promise<Prefs> {
       return {...DEFAULT_PREFS};
     }
     const parsed = JSON.parse(raw);
-    // Merge over defaults so a partial/old payload can't leave gaps.
-    return {...DEFAULT_PREFS, ...parsed} as Prefs;
+    const merged: Prefs = {...DEFAULT_PREFS, ...parsed};
+    if (!parsed.dateTimeMode && typeof parsed.showDateTime === 'boolean') {
+      merged.dateTimeMode = parsed.showDateTime ? 'both' : 'none';
+    }
+    return merged;
   } catch {
     return {...DEFAULT_PREFS};
   }

@@ -22,6 +22,7 @@ export type WeatherFormat = 'multiline' | 'oneline';
 export type Position = 'top-left' | 'top-right';
 export type TimeFormat = '24h' | '12h';
 export type DateFormat = 'iso' | 'eu' | 'us';
+export type DateTimeMode = 'both' | 'date' | 'time' | 'none';
 
 /** User preferences persisted across sessions. */
 export type Prefs = {
@@ -29,7 +30,8 @@ export type Prefs = {
   windUnit: WindUnit;
   format: WeatherFormat;
   position: Position;
-  showDateTime: boolean; // include a date+time stamp, or omit it entirely
+  showDateTime?: boolean; // legacy field for backward compatibility
+  dateTimeMode: DateTimeMode;
   dateFormat: DateFormat;
   timeFormat: TimeFormat;
 };
@@ -39,7 +41,7 @@ export const DEFAULT_PREFS: Prefs = {
   windUnit: 'kmh',
   format: 'multiline',
   position: 'top-left',
-  showDateTime: true,
+  dateTimeMode: 'both',
   dateFormat: 'iso',
   timeFormat: '24h',
 };
@@ -50,6 +52,7 @@ export type CurrentWeather = {
   apparentTemperature: number; // rounded
   humidity: number; // percent, rounded
   windSpeed: number; // rounded
+  windGusts?: number; // rounded peak gust speed if present
   windDirection: number; // degrees (0–360), direction wind blows from
   weatherCode: number; // WMO code
   isDay: boolean;

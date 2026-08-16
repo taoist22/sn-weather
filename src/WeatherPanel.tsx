@@ -12,6 +12,7 @@ import {PluginCommAPI, PluginFileAPI, PluginManager} from 'sn-plugin-lib';
 import {
   CurrentWeather,
   DateFormat,
+  DateTimeMode,
   DEFAULT_PREFS,
   GeocodeResult,
   Position,
@@ -535,15 +536,33 @@ export default function WeatherPanel() {
         {/* Timestamp */}
         <Text style={styles.fieldLabel}>{'Timestamp'}</Text>
         <View style={styles.chipRow}>
-          {renderToggle('Date + time', prefs.showDateTime, () =>
-            updatePrefs({showDateTime: true}, false),
+          {renderToggle('Date + time', prefs.dateTimeMode === 'both', () =>
+            updatePrefs(
+              {dateTimeMode: 'both' as DateTimeMode, showDateTime: true},
+              false,
+            ),
           )}
-          {renderToggle('None', !prefs.showDateTime, () =>
-            updatePrefs({showDateTime: false}, false),
+          {renderToggle('Date', prefs.dateTimeMode === 'date', () =>
+            updatePrefs(
+              {dateTimeMode: 'date' as DateTimeMode, showDateTime: true},
+              false,
+            ),
+          )}
+          {renderToggle('Time', prefs.dateTimeMode === 'time', () =>
+            updatePrefs(
+              {dateTimeMode: 'time' as DateTimeMode, showDateTime: true},
+              false,
+            ),
+          )}
+          {renderToggle('None', prefs.dateTimeMode === 'none', () =>
+            updatePrefs(
+              {dateTimeMode: 'none' as DateTimeMode, showDateTime: false},
+              false,
+            ),
           )}
         </View>
 
-        {prefs.showDateTime && (
+        {(prefs.dateTimeMode === 'both' || prefs.dateTimeMode === 'date') && (
           <>
             <Text style={styles.fieldLabel}>{'Date format'}</Text>
             <View style={styles.chipRow}>
@@ -553,7 +572,11 @@ export default function WeatherPanel() {
                 ),
               )}
             </View>
+          </>
+        )}
 
+        {(prefs.dateTimeMode === 'both' || prefs.dateTimeMode === 'time') && (
+          <>
             <Text style={styles.fieldLabel}>{'Time format'}</Text>
             <View style={styles.chipRow}>
               {renderToggle('24h', prefs.timeFormat === '24h', () =>
