@@ -1,6 +1,6 @@
 jest.mock('sn-plugin-lib', () => ({
   PluginNoteAPI: {
-    insertText: jest.fn().mockResolvedValue({success: true}),
+    insertText: jest.fn().mockResolvedValue({success: true, result: true}),
   },
 }));
 
@@ -130,4 +130,12 @@ describe('insertWeatherStamp placement', () => {
     expect(callArg.textRect.left).toBeGreaterThanOrEqual(100);
     expect(callArg.textRect.left).toBeLessThan(callArg.textRect.right);
   });
+});
+
+it('anchors a multiline weather stamp to the tapped baseline', async () => {
+  await insertWeatherStamp(['Toronto', '12°C, Rain', 'Wind 14 km/h NE'], 'top-left', 1404, 1872, {x: 200, y: 400});
+  expect(PluginNoteAPI.insertText).toHaveBeenLastCalledWith(expect.objectContaining({
+    textRect: {left: 200, top: 339, right: 479, bottom: 471},
+    showLassoAfterInsert: false,
+  }));
 });

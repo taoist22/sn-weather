@@ -1,5 +1,6 @@
 // ─── Build + insert the weather stamp ─────────────────────────────────────────
 
+import {tapRect, type TapPoint} from './tapPlacement';
 import {PluginNoteAPI} from 'sn-plugin-lib';
 import {
   CurrentWeather,
@@ -165,6 +166,8 @@ export async function insertWeatherStamp(
   lines: string[],
   position: Position,
   pageWidth: number,
+  pageHeight = 1872,
+  point?: TapPoint,
 ): Promise<void> {
   const text = lines.join('\n');
   const width = estimateBoxWidth(lines, pageWidth);
@@ -188,7 +191,7 @@ export async function insertWeatherStamp(
 
   const res = (await PluginNoteAPI.insertText({
     textContentFull: text,
-    textRect: {
+    textRect: point ? tapRect(point, width, boxHeight, pageWidth, pageHeight, FONT_SIZE) : {
       left: Math.round(left),
       top: Math.round(top),
       right: Math.round(right),
@@ -203,7 +206,7 @@ export async function insertWeatherStamp(
     showLassoAfterInsert: false,
   })) as ApiRes<boolean>;
 
-  if (!res?.success) {
+  if (res?.success !== true || res?.result !== true) {
     throw new Error(res?.error?.message ?? 'insertText failed');
   }
 }

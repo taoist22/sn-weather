@@ -15,7 +15,6 @@ import {
   DateTimeMode,
   DEFAULT_PREFS,
   GeocodeResult,
-  Position,
   Prefs,
   SavedLocation,
   TempUnit,
@@ -26,7 +25,13 @@ import {
 import {fetchCurrentWeather, searchLocations} from './weatherApi';
 import {loadLocation, loadPrefs, saveLocation, savePrefs} from './storage';
 import {buildWeatherLines, insertWeatherStamp} from './insertWeather';
+import PlacementOverlay, {type PlacementRequest, type PlacementResult} from './PlacementOverlay';
 import {subscribeToButtonEvents} from './pluginRouter';
+import {
+  ensureFileReadPermission,
+  ensureFileWritePermission,
+  ensureInternetPermission,
+} from './pluginPermissions';
 
 const DEFAULT_PAGE_WIDTH = 1404;
 const PANEL_WIDTH = 480;
@@ -75,7 +80,7 @@ type ApiRes<T> =
 
 // ─── Page context (for insert width) ──────────────────────────────────────────
 
-type PageInfo = {width: number; height: number; ok: boolean};
+type PageInfo = {width: number; height: number; ok: boolean; path?: string; page?: number};
 
 async function resolvePageInfo(): Promise<PageInfo> {
   try {
@@ -96,6 +101,8 @@ async function resolvePageInfo(): Promise<PageInfo> {
           width: sizeRes.result.width,
           height: sizeRes.result.height,
           ok: true,
+          path: pathRes.result,
+          page: pageRes.result,
         };
       }
     }
@@ -116,7 +123,6 @@ export default function WeatherPanel() {
   const [mode, setMode] = useState<Mode>('loading');
   const [location, setLocation] = useState<SavedLocation | null>(null);
   const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
-  const [pageWidth, setPageWidth] = useState(DEFAULT_PAGE_WIDTH);
   const [deviceType, setDeviceType] = useState<number | null>(null);
 
   // Weather fetch state
@@ -131,6 +137,8 @@ export default function WeatherPanel() {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
 
+  const [placement, setPlacement] = useState<PlacementRequest | null>(null);
+  const placementRef = useRef<PlacementRequest | null>(null);
   const [error, setError] = useState<string | null>(null);
   const insertingRef = useRef(false);
   const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -142,6 +150,9 @@ export default function WeatherPanel() {
       setWeatherLoading(true);
       setWeatherError(null);
       try {
+        if (!(await ensureInternetPermission())) {
+          throw new Error('Internet access was not allowed');
+        }
         const w = await fetchCurrentWeather(
           loc.latitude,
           loc.longitude,
@@ -188,16 +199,19 @@ export default function WeatherPanel() {
       return;
     }
     lastRefreshRef.current = now;
-    bootstrap();
+    void (async () => {
+      // Request permissions serially. On first launch, Android cannot reliably
+      // present the file and network permission dialogs at the same time.
+      await ensureFileReadPermission();
+      await bootstrap();
+    })();
   }, [bootstrap]);
 
   useEffect(() => {
-    // Resolve the note page size and device type — both feed the placement
-    // width cap in handleInsert (a Manta-sized note opened on a Nomad must be
-    // capped to the Nomad's narrower native width).
+    // Device type feeds the placement width cap (a Manta-sized note opened on
+    // a Nomad must be capped to the Nomad's narrower native width). Page size
+    // is resolved by refresh after file permission has been handled.
     (async () => {
-      const info = await resolvePageInfo();
-      setPageWidth(info.width);
       try {
         const d = (await PluginManager.getDeviceType()) as unknown;
         if (typeof d === 'number') {
@@ -210,12 +224,8 @@ export default function WeatherPanel() {
       }
     })();
     refresh();
-    const lifeSub = PluginManager.addPluginLifeListener({
-      onStart() {
-        // Re-open may not remount the component — refresh persisted data.
-        refresh();
-      },
-      onStop() {
+    const clearTransientState = () => {
+        placementRef.current?.resolve({kind: 'cancelled'});
         // Drop the last reading so a stale value can never be inserted on the
         // next open; reopening refetches fresh conditions.
         setWeather(null);
@@ -226,6 +236,16 @@ export default function WeatherPanel() {
         setSearchError(null);
         setHasSearched(false);
         setError(null);
+    };
+    const lifeSub = PluginManager.registerPluginLifeListener({
+      onMsg(message: any) {
+        const state = message?.state ?? message;
+        if (state === 2 || state === 'start') {
+          // Re-open may not remount the component — refresh persisted data.
+          refresh();
+        } else if (state === 3 || state === 'stop' || state === 'pause') {
+          clearTransientState();
+        }
       },
     });
     // A toolbar button press is the most reliable "reopened" signal — fires on
@@ -274,6 +294,9 @@ export default function WeatherPanel() {
     setSearchError(null);
     setHasSearched(true);
     try {
+      if (!(await ensureInternetPermission())) {
+        throw new Error('Internet access was not allowed');
+      }
       const found = await searchLocations(q);
       setResults(found);
     } catch (e) {
@@ -314,14 +337,47 @@ export default function WeatherPanel() {
     insertingRef.current = true;
     setError(null);
     try {
+      if (!(await ensureFileReadPermission())) {
+        throw new Error('File access was not allowed');
+      }
+      if (!(await ensureFileWritePermission())) {
+        throw new Error('File access was not allowed');
+      }
+      const info = await resolvePageInfo();
       const lines = buildWeatherLines(weather, location, prefs);
       const win = Dimensions.get('window');
       const placementWidth = placementWidthFor(
-        pageWidth,
+        info.width,
         deviceType,
         win.width > win.height,
       );
-      await insertWeatherStamp(lines, prefs.position, placementWidth);
+      if (!info.ok || !(info.height > 0)) {
+        throw new Error('Cannot identify the current note page.');
+      }
+      const landscape = win.width > win.height;
+      const native = deviceType == null ? undefined : DEVICE_NATIVE_PORTRAIT[deviceType];
+      const placementHeight = Math.min(info.height, native ? native[landscape ? 0 : 1] : info.height);
+      const outcome = await new Promise<PlacementResult>(resolve => {
+        const request = {resolve};
+        placementRef.current = request;
+        setPlacement(request);
+      });
+      if (outcome.kind !== 'placed') {
+        PluginManager.closePluginView();
+        return;
+      }
+      const current = await resolvePageInfo();
+      const currentWindow = Dimensions.get('window');
+      if (!current.ok || current.path !== info.path || current.page !== info.page ||
+          current.width !== info.width || current.height !== info.height ||
+          currentWindow.width !== win.width || currentWindow.height !== win.height) {
+        throw new Error('Page or orientation changed. Please try again.');
+      }
+      const {point} = outcome;
+      if (point.x < 0 || point.y < 0 || point.x >= placementWidth || point.y >= placementHeight) {
+        throw new Error('Tap was outside the page. Please try again.');
+      }
+      await insertWeatherStamp(lines, prefs.position, placementWidth, placementHeight, point);
       PluginManager.closePluginView();
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Insert failed';
@@ -331,9 +387,11 @@ export default function WeatherPanel() {
       }
       errorTimerRef.current = setTimeout(() => setError(null), ERROR_DISPLAY_MS);
     } finally {
+      placementRef.current = null;
+      setPlacement(null);
       insertingRef.current = false;
     }
-  }, [weather, location, prefs, pageWidth, deviceType]);
+  }, [weather, location, prefs, deviceType]);
 
   const handleClose = useCallback(() => {
     if (!insertingRef.current) {
@@ -589,16 +647,7 @@ export default function WeatherPanel() {
           </>
         )}
 
-        {/* Position */}
-        <Text style={styles.fieldLabel}>{'Position'}</Text>
-        <View style={styles.chipRow}>
-          {renderToggle('Top Left', prefs.position === 'top-left', () =>
-            updatePrefs({position: 'top-left' as Position}, false),
-          )}
-          {renderToggle('Top Right', prefs.position === 'top-right', () =>
-            updatePrefs({position: 'top-right' as Position}, false),
-          )}
-        </View>
+        <Text style={styles.fieldLabel}>Insert, then tap the page to place the weather.</Text>
       </View>
 
       <View style={styles.divider} />
@@ -622,6 +671,8 @@ export default function WeatherPanel() {
       </View>
     </>
   );
+
+  if (placement) {return <PlacementOverlay request={placement} />;}
 
   return (
     <Pressable style={styles.overlay} onPress={handleClose}>

@@ -20,7 +20,7 @@ A [Supernote](https://supernote.com) plugin that looks up the current weather fo
   - *One-line*: `Toronto · 12°C, Slight rain · Wind 14 km/h NE`
 - **Optional timestamp:** toggle a date + local-time stamp on or off, with ISO, EU, or US date format and 24-hour or 12-hour time. The time is the reading's time in the location's own timezone.
 - **Units:** °C / °F and km/h / mph, selectable and remembered.
-- **Position:** Top Left or Top Right of the page.
+- **Tap to place:** press Insert, then tap the note where the stamp should go. The first line aligns to the tapped baseline, with page-edge limits. Cancel or wait 30 seconds to exit without inserting.
 - Inserted as an editable text element — lasso and move it like any text box.
 
 ## Installation
@@ -35,8 +35,8 @@ A [Supernote](https://supernote.com) plugin that looks up the current weather fo
 1. Open a note and tap the **weather icon** in the toolbar.
 2. **First run:** search for your city and tap the correct match (e.g. "Springfield, Illinois, United States"). The location is saved.
 3. The panel fetches the current weather and shows a live preview.
-4. Adjust **temperature** (°C/°F), **wind** (km/h / mph), **format**, **timestamp**, and **position** as desired. Changing units re-fetches; your settings persist.
-5. Tap **Insert** to place the stamp and close the panel.
+4. Adjust **temperature** (°C/°F), **wind** (km/h / mph), **format**, **timestamp** as desired. Changing units re-fetches; your settings persist.
+5. Tap **Insert**, then tap the note to place the stamp. The plugin closes after insertion. Tap **Cancel** to exit without inserting.
 6. To switch cities later, tap **Change** on the weather screen.
 
 ## Requirements & limitations
